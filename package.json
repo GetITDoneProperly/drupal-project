@@ -1,0 +1,11 @@
+{
+  "name": "@getitdoneproperly/drupal-project",
+  "version": "0.0.0-semantic-release",
+  "description": "Drupal Developer Portal",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/templates/drupal-project"
+  },
+  "author": "Craig Gardener <code@getitdoneproperly.uk>",
+  "license": "GPL-2.0-or-later"
+}

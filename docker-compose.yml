@@ -1,0 +1,125 @@
+version: "3"
+
+services:
+
+  apache:
+    image: wodby/apache:$APACHE_TAG
+    container_name: "${PROJECT_NAME}_apache"
+    networks:
+      - traefik
+    depends_on:
+      - php
+    environment:
+      APACHE_LOG_LEVEL: debug
+      APACHE_BACKEND_HOST: php
+      APACHE_VHOST_PRESET: php
+      APACHE_DOCUMENT_ROOT: /var/www/html/web
+    volumes:
+      - ./web:/var/www/html
+    labels:
+      - 'traefik.backend=apache'
+      - 'traefik.port=80'
+      - 'traefik.frontend.rule=Host:${PROJECT_BASE_URL}'
+      - 'traefik.docker.network=traefik'
+
+  php:
+    image: wodby/drupal-php:$PHP_TAG
+    container_name: "${PROJECT_NAME}_php"
+    environment:
+      PHP_SENDMAIL_PATH: /usr/sbin/sendmail -t -i -S mailhog:1025
+      DB_HOST: $DB_HOST
+      DB_USER: $DB_USER
+      DB_PASSWORD: $DB_PASSWORD
+      DB_NAME: $DB_NAME
+      DB_DRIVER: $DB_DRIVER
+      COLUMNS: $COLUMNS
+      PHP_XDEBUG: $PHP_XDEBUG
+      PHP_XDEBUG_DEFAULT_ENABLE: $PHP_XDEBUG_DEFAULT_ENABLE
+      PHP_XDEBUG_REMOTE_CONNECT_BACK: $PHP_XDEBUG_REMOTE_CONNECT_BACK
+      PHP_XDEBUG_REMOTE_HOST: $PHP_XDEBUG_REMOTE_HOST
+    volumes:
+      - ./web:/var/www/html
+      - ./data/xdebug:/mnt/files
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: "${PROJECT_NAME}_mailhog"
+    networks:
+      - traefik
+    labels:
+      - 'traefik.backend=mailhog'
+      - 'traefik.port=8025'
+      - 'traefik.frontend.rule=Host:mailhog.${PROJECT_BASE_URL}'
+      - 'traefik.docker.network=traefik'
+
+  mariadb:
+    image: wodby/mariadb:$MARIADB_TAG
+    container_name: "${PROJECT_NAME}_mariadb"
+    stop_grace_period: 30s
+    environment:
+      MYSQL_ROOT_PASSWORD: $DB_ROOT_PASSWORD
+      MYSQL_DATABASE: $DB_NAME
+      MYSQL_USER: $DB_USER
+      MYSQL_PASSWORD: $DB_PASSWORD
+    volumes:
+      - ./data/mysql/init:/docker-entrypoint-initdb.d
+
+  # memcached:
+  #   container_name: "${PROJECT_NAME}_memcached"
+  #   image: wodby/memcached:$MEMCACHED_TAG
+
+  # nginx:
+  #   image: wodby/nginx:$NGINX_TAG
+  #   container_name: "${PROJECT_NAME}_nginx"
+  #   networks:
+  #     - traefik
+  #   depends_on:
+  #     - php
+  #   environment:
+  #     NGINX_STATIC_OPEN_FILE_CACHE: "off"
+  #     NGINX_ERROR_LOG_LEVEL: debug
+  #     NGINX_BACKEND_HOST: php
+  #     NGINX_SERVER_ROOT: /var/www/html/web
+  #     NGINX_VHOST_PRESET: $NGINX_VHOST_PRESET
+  #   volumes:
+  #     - ./web:/var/www/html
+  #   labels:
+  #     - 'traefik.backend=nginx'
+  #     - 'traefik.port=80'
+  #     - 'traefik.frontend.rule=Host:${PROJECT_BASE_URL}'
+  #     - 'traefik.docker.network=traefik'
+
+  # redis:
+  #   container_name: "${PROJECT_NAME}_redis"
+  #   image: wodby/redis:$REDIS_TAG
+
+  # solr:
+  #   image: wodby/solr:$SOLR_TAG
+  #   container_name: "${PROJECT_NAME}_solr"
+  #   environment:
+  #     SOLR_DEFAULT_CONFIG_SET: $SOLR_CONFIG_SET
+  #     SOLR_HEAP: 1024m
+  #   labels:
+  #     - 'traefik.backend=solr'
+  #     - 'traefik.port=8983'
+  #     - 'traefik.frontend.rule=Host:solr.${PROJECT_BASE_URL}'
+  #     - 'traefik.docker.network=traefik'
+
+  webgrind:
+    image: wodby/webgrind:$WEBGRIND_TAG
+    container_name: "${PROJECT_NAME}_webgrind"
+    networks:
+      - traefik
+    environment:
+      WEBGRIND_PROFILER_DIR: /mnt/files/xdebug/profiler
+    labels:
+      - 'traefik.backend=webgrind'
+      - 'traefik.port=8080'
+      - 'traefik.frontend.rule=Host:webgrind.${PROJECT_BASE_URL}'
+      - 'traefik.docker.network=traefik'
+    volumes:
+      - ./data/xdebug:/mnt/files
+
+networks:
+  traefik:
+    external: true
